@@ -1,3 +1,7 @@
+import {
+  FaceDetector,
+  FilesetResolver,
+} from "@mediapipe/tasks-vision";
 import { generateAura } from "./aura-engine";
 import type { AuraResult } from "./aura-types";
 
@@ -5,13 +9,14 @@ export type ScannerMeasurements = {
   movement: number;
   faceStability: number;
   brightness: number;
+  faceDetected: boolean;
 };
 
 export type AuraScanner = {
   start: () => void;
   stop: () => void;
   getMeasurements: () => ScannerMeasurements;
-  completeScan: () => AuraResult;
+  completeScan: () => AuraResult | null;
 };
 
 function clamp(value: number, min: number, max: number): number {
@@ -69,10 +74,10 @@ function calculateFrameDifference(
   return clamp((difference / 255) * 100, 0, 100);
 }
 
-export function createAuraScanner(
+export async function createAuraScanner(
   video: HTMLVideoElement,
   canvas: HTMLCanvasElement
-): AuraScanner {
+): Promise<AuraScanner> {
   const context = canvas.getContext("2d", {
     willReadFrequently: true,
   });
@@ -80,6 +85,27 @@ export function createAuraScanner(
   if (!context) {
     throw new Error("AURASCAN: Canvas context unavailable.");
   }
+
+  /*
+   * Initialize MediaPipe Face Detector.
+   *
+   * The model itself is stored locally in:
+   * /public/models/face_detector.tflite
+   *
+   * The MediaPipe WASM runtime is loaded from jsDelivr.
+   */
+  const vision = await FilesetResolver.forVisionTasks(
+    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
+  );
+
+  const faceDetector = await FaceDetector.createFromOptions(vision, {
+    baseOptions: {
+      modelAssetPath: "/models/face_detector.tflite",
+    },
+    runningMode: "VIDEO",
+    minDetectionConfidence: 0.5,
+    minSuppressionThreshold: 0.3,
+  });
 
   let running = false;
   let animationFrame = 0;
@@ -89,10 +115,13 @@ export function createAuraScanner(
   let movementSamples: number[] = [];
   let brightnessSamples: number[] = [];
 
+  let faceDetected = false;
+
   let lastMeasurements: ScannerMeasurements = {
     movement: 0,
     faceStability: 100,
     brightness: 50,
+    faceDetected: false,
   };
 
   const captureFrame = () => {
@@ -107,9 +136,41 @@ export function createAuraScanner(
       canvas.width = width;
       canvas.height = height;
 
+      /*
+       * Draw the current camera frame onto the hidden analysis canvas.
+       */
       context.drawImage(video, 0, 0, width, height);
 
-      const imageData = context.getImageData(0, 0, width, height);
+      /*
+       * REAL FACE DETECTION
+       *
+       * This is the important part.
+       *
+       * We are not identifying the person.
+       * We are only checking whether a face exists.
+       */
+      try {
+        const detectionResult = faceDetector.detectForVideo(
+          video,
+          performance.now()
+        );
+
+        faceDetected = detectionResult.detections.length > 0;
+      } catch {
+        /*
+         * If one frame fails, don't kill the entire scan.
+         * The next frame will try again.
+         */
+        faceDetected = false;
+      }
+
+      const imageData = context.getImageData(
+        0,
+        0,
+        width,
+        height
+      );
+
       const currentFrame = imageData.data;
 
       const brightness = calculateBrightness(currentFrame);
@@ -117,7 +178,10 @@ export function createAuraScanner(
       const movement =
         previousFrame === null
           ? 0
-          : calculateFrameDifference(currentFrame, previousFrame);
+          : calculateFrameDifference(
+              currentFrame,
+              previousFrame
+            );
 
       previousFrame = new Uint8ClampedArray(currentFrame);
 
@@ -133,17 +197,37 @@ export function createAuraScanner(
       }
 
       const averageMovement =
-        movementSamples.reduce((sum, value) => sum + value, 0) /
-        movementSamples.length;
+        movementSamples.reduce(
+          (sum, value) => sum + value,
+          0
+        ) / movementSamples.length;
 
       const averageBrightness =
-        brightnessSamples.reduce((sum, value) => sum + value, 0) /
-        brightnessSamples.length;
+        brightnessSamples.reduce(
+          (sum, value) => sum + value,
+          0
+        ) / brightnessSamples.length;
 
       lastMeasurements = {
         movement: clamp(averageMovement, 0, 100),
-        faceStability: clamp(100 - averageMovement, 0, 100),
-        brightness: clamp(averageBrightness, 0, 100),
+
+        /*
+         * This remains intentionally fake.
+         * Face detection is real, aura measurement is not.
+         */
+        faceStability: clamp(
+          100 - averageMovement,
+          0,
+          100
+        ),
+
+        brightness: clamp(
+          averageBrightness,
+          0,
+          100
+        ),
+
+        faceDetected,
       };
     }
 
@@ -157,11 +241,22 @@ export function createAuraScanner(
       }
 
       running = true;
+
       previousFrame = null;
       movementSamples = [];
       brightnessSamples = [];
+      faceDetected = false;
 
-      animationFrame = requestAnimationFrame(captureFrame);
+      lastMeasurements = {
+        movement: 0,
+        faceStability: 100,
+        brightness: 50,
+        faceDetected: false,
+      };
+
+      animationFrame = requestAnimationFrame(
+        captureFrame
+      );
     },
 
     stop() {
@@ -172,6 +267,8 @@ export function createAuraScanner(
       }
 
       animationFrame = 0;
+
+      faceDetector.close();
     },
 
     getMeasurements() {
@@ -179,7 +276,17 @@ export function createAuraScanner(
     },
 
     completeScan() {
-      const measurements = this.getMeasurements();
+      const measurements = lastMeasurements;
+
+      /*
+       * NO FACE = NO AURA.
+       *
+       * This prevents the scanner from generating
+       * a random score when nobody is in front of it.
+       */
+      if (!measurements.faceDetected) {
+        return null;
+      }
 
       return generateAura({
         movement: measurements.movement,

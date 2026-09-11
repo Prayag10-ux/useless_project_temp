@@ -1,4 +1,3 @@
-import type { AuraResult } from "./aura-types";
 import {
   createAuraScanController,
   type AuraScanController,
@@ -56,6 +55,7 @@ export async function createAuraScan(
             elapsedMs: 0,
             result: null,
             error: "AURASCAN controller unavailable.",
+            faceDetected: false,
           }
         );
       },

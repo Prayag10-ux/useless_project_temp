@@ -14,6 +14,7 @@ export type AuraScanState = {
   elapsedMs: number;
   result: AuraResult | null;
   error: string | null;
+  faceDetected: boolean;
 };
 
 export type AuraScanController = {
@@ -22,7 +23,6 @@ export type AuraScanController = {
   getState: () => AuraScanState;
 };
 
-const MIN_SCAN_DURATION = 5200;
 const MAX_SCAN_DURATION = 7800;
 
 export function createAuraScanController(
@@ -40,6 +40,7 @@ export function createAuraScanController(
     elapsedMs: 0,
     result: null,
     error: null,
+    faceDetected: false,
   };
 
   const updateState = (updates: Partial<AuraScanState>) => {
@@ -61,7 +62,6 @@ export function createAuraScanController(
   const stop = () => {
     stopTimer();
     scanner?.stop();
-
     scanner = null;
 
     updateState({
@@ -70,10 +70,11 @@ export function createAuraScanController(
       elapsedMs: 0,
       result: null,
       error: null,
+      faceDetected: false,
     });
   };
 
-  const start = () => {
+  const start = async () => {
     if (
       state.phase === "INITIALIZING" ||
       state.phase === "SCANNING"
@@ -88,9 +89,10 @@ export function createAuraScanController(
         elapsedMs: 0,
         result: null,
         error: null,
+        faceDetected: false,
       });
 
-      scanner = createAuraScanner(video, canvas);
+      scanner = await createAuraScanner(video, canvas);
       scanner.start();
 
       startTime = Date.now();
@@ -100,12 +102,11 @@ export function createAuraScanController(
       });
 
       timer = setInterval(() => {
-        const elapsedMs = Date.now() - startTime;
+        if (!scanner) return;
 
-        /*
-         * Progress now moves smoothly from 0% to 100%
-         * across the entire scan duration.
-         */
+        const elapsedMs = Date.now() - startTime;
+        const measurements = scanner.getMeasurements();
+
         const progress = Math.min(
           100,
           Math.round((elapsedMs / MAX_SCAN_DURATION) * 100)
@@ -114,22 +115,25 @@ export function createAuraScanController(
         updateState({
           elapsedMs,
           progress,
+          faceDetected: measurements.faceDetected,
         });
 
         if (elapsedMs >= MAX_SCAN_DURATION) {
-          const result = scanner?.completeScan();
+          const result = scanner.completeScan();
 
           if (!result) {
             updateState({
               phase: "ERROR",
-              error: "AURASCAN failed to produce a result.",
+              error:
+                "SUBJECT NOT FOUND. AURASCAN REQUIRES A HUMAN TARGET.",
+              faceDetected: false,
             });
 
             stopTimer();
             return;
           }
 
-          scanner?.stop();
+          scanner.stop();
           stopTimer();
 
           updateState({
@@ -137,6 +141,7 @@ export function createAuraScanController(
             progress: 100,
             elapsedMs,
             result,
+            faceDetected: true,
           });
         }
       }, 50);
@@ -154,8 +159,12 @@ export function createAuraScanController(
   };
 
   return {
-    start,
+    start() {
+      void start();
+    },
+
     stop,
+
     getState: () => ({ ...state }),
   };
 }
