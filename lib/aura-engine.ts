@@ -6,6 +6,7 @@ type AuraInput = {
   faceStability?: number;
   brightness?: number;
   scanDuration?: number;
+  specialEvent?: "DEMONIC" | "INSECURITY" | "MANIPULATION";
 };
 
 function clamp(value: number, min: number, max: number): number {
@@ -38,11 +39,13 @@ function generateMetric(base: number, variation = 12): number {
 
 export function generateAura(input: AuraInput = {}): AuraResult {
   const movement = clamp(input.movement ?? randomBetween(20, 80), 0, 100);
+
   const faceStability = clamp(
     input.faceStability ?? randomBetween(50, 100),
     0,
     100
   );
+
   const brightness = clamp(
     input.brightness ?? randomBetween(35, 85),
     0,
@@ -93,26 +96,38 @@ export function generateAura(input: AuraInput = {}): AuraResult {
   // Convert 0–100 metrics into the ridiculous 0–1000 AU scale.
   let score = Math.round(average * 10);
 
-  /*
-   * Add a small amount of controlled chaos.
-   * The scanner should never feel perfectly deterministic.
-   */
+  // Add controlled chaos.
   score += Math.round(randomBetween(-35, 35));
+
   score = clamp(score, 0, 1000);
+
+  /*
+   * SPECIAL EVENTS
+   *
+   * These are deliberately controllable so the funny outcomes
+   * can actually be demonstrated during the hackathon.
+   */
+
+  let specialMessage: string | undefined;
+
+  if (input.specialEvent === "DEMONIC") {
+    score = 666;
+    specialMessage = SPECIAL_MESSAGES.DEMONIC;
+  } else if (input.specialEvent === "INSECURITY") {
+    score = clamp(score - 40, 0, 1000);
+    specialMessage = SPECIAL_MESSAGES.INSECURITY;
+  } else if (input.specialEvent === "MANIPULATION") {
+    specialMessage = SPECIAL_MESSAGES.MANIPULATION;
+  } else if (score < 100) {
+    specialMessage = SPECIAL_MESSAGES.LOW_AURA;
+  } else if (score > 950) {
+    specialMessage = SPECIAL_MESSAGES.EXCESSIVE;
+  }
 
   const profile = getProfile(score);
 
   const durationMs =
     input.scanDuration ?? Math.round(randomBetween(5200, 7800));
-
-  const specialMessage =
-    score < 100
-      ? SPECIAL_MESSAGES.LOW_AURA
-      : score === 666
-        ? SPECIAL_MESSAGES.DEMONIC
-        : score > 950
-          ? SPECIAL_MESSAGES.EXCESSIVE
-          : undefined;
 
   return {
     score,
