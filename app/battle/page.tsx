@@ -1,108 +1,453 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
     ArrowLeft,
     ArrowRight,
+    Camera,
     Crosshair,
-    Crown,
-    FlaskConical,
-    RotateCcw,
-    Swords,
+    ShieldAlert,
     Trophy,
-    Zap,
+    Users,
+    Activity,
+    RotateCcw,
+    AlertTriangle,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 
-import { getAuraResult } from "@/lib/aura-session";
-import { battleAura } from "@/lib/aura-battle";
-import { generateDemoAura } from "@/lib/aura-demo";
-import type { AuraResult } from "@/lib/aura-types";
-import type { AuraDemoMode } from "@/lib/aura-demo";
+import {
+    createAuraBattle,
+    type AuraBattle,
+    type AuraBattleState,
+} from "./battle-api";
 
-const DEMO_MODES: AuraDemoMode[] = [
-    "LOW_AURA",
-    "DEMONIC",
-    "ILLEGAL",
-    "INSECURITY",
-    "MANIPULATION",
-];
+type BattlePhase =
+    | "IDLE"
+    | "INITIALIZING"
+    | "WAITING_FOR_SUBJECTS"
+    | "WAITING_FOR_OPPONENT"
+    | "READY"
+    | "SCANNING"
+    | "COMPLETE"
+    | "ERROR";
+
+type PlayerMeasurement = {
+    movement: number;
+    faceStability: number;
+    brightness: number;
+};
+
+function getStatusText(state: AuraBattleState) {
+    switch (state.phase) {
+        case "INITIALIZING":
+            return "INITIALIZING BATTLE SYSTEM";
+
+        case "WAITING_FOR_SUBJECTS":
+            return "WAITING FOR SUBJECTS";
+
+        case "WAITING_FOR_OPPONENT":
+            return "WAITING FOR OPPONENT";
+
+        case "READY":
+            return "TWO SUBJECTS LOCKED";
+
+        case "SCANNING":
+            return "AURA BATTLE IN PROGRESS";
+
+        case "COMPLETE":
+            return "BATTLE ANALYSIS COMPLETE";
+
+        case "ERROR":
+            return "BATTLE SYSTEM ERROR";
+
+        default:
+            return "BATTLE SYSTEM READY";
+    }
+}
+
+function getFaceInstruction(state: AuraBattleState) {
+    switch (state.phase) {
+        case "WAITING_FOR_SUBJECTS":
+            return "STEP INTO THE SCANNER";
+
+        case "WAITING_FOR_OPPONENT":
+            return "SECOND SUBJECT REQUIRED";
+
+        case "READY":
+            return "SUBJECTS LOCKED // BEGINNING SCAN";
+
+        case "SCANNING":
+            return "HOLD POSITION // AURA ACQUISITION ACTIVE";
+
+        case "COMPLETE":
+            return "AURA SIGNATURES ACQUIRED";
+
+        case "ERROR":
+            return state.error ?? "UNKNOWN BATTLE ERROR";
+
+        default:
+            return "POSITION TWO SUBJECTS IN FRAME";
+    }
+}
+
+function PlayerPanel({
+    player,
+    measurement,
+    side,
+    active,
+    winner,
+}: {
+    player: "PLAYER 01" | "PLAYER 02";
+    measurement: PlayerMeasurement | null;
+    side: "left" | "right";
+    active: boolean;
+    winner: boolean;
+}) {
+    const auraColor =
+        player === "PLAYER 01"
+            ? "#00FF88"
+            : "#00D9FF";
+
+    return (
+        <div
+            className={`battle-player-panel battle-player-${side} ${active ? "battle-player-active" : ""
+                } ${winner ? "battle-player-winner" : ""}`}
+            style={
+                {
+                    "--player-color": auraColor,
+                } as React.CSSProperties
+            }
+        >
+            <div className="battle-player-panel-top">
+                <div className="battle-player-index">
+                    {player}
+                </div>
+
+                <div className="battle-player-status">
+                    <span
+                        className={`battle-player-status-dot ${measurement ? "active" : ""
+                            }`}
+                    />
+                    {measurement ? "LOCKED" : "SEARCHING"}
+                </div>
+            </div>
+
+            <div className="battle-player-title">
+                <span>AURA SUBJECT</span>
+
+                <strong>
+                    {side === "left" ? "LEFT SIGNATURE" : "RIGHT SIGNATURE"}
+                </strong>
+            </div>
+
+            <div className="battle-player-readout">
+                <div className="battle-mini-metric">
+                    <span>MOVEMENT</span>
+                    <strong>
+                        {measurement
+                            ? Math.round(measurement.movement)
+                            : "--"}
+                    </strong>
+                </div>
+
+                <div className="battle-mini-metric">
+                    <span>STABILITY</span>
+                    <strong>
+                        {measurement
+                            ? Math.round(measurement.faceStability)
+                            : "--"}
+                    </strong>
+                </div>
+
+                <div className="battle-mini-metric">
+                    <span>BRIGHTNESS</span>
+                    <strong>
+                        {measurement
+                            ? Math.round(measurement.brightness)
+                            : "--"}
+                    </strong>
+                </div>
+            </div>
+
+            <div className="battle-player-meter">
+                <div
+                    className="battle-player-meter-fill"
+                    style={{
+                        width: measurement
+                            ? `${Math.min(
+                                100,
+                                Math.max(0, measurement.faceStability),
+                            )}%`
+                            : "0%",
+                    }}
+                />
+            </div>
+
+            {winner && (
+                <div className="battle-winner-tag">
+                    <Trophy size={12} />
+                    WINNER
+                </div>
+            )}
+        </div>
+    );
+}
+
+function BattleResult({
+    state,
+    onReplay,
+}: {
+    state: AuraBattleState;
+    onReplay: () => void;
+}) {
+    const result = state.result;
+
+    if (!result) {
+        return null;
+    }
+
+    const playerOneWon =
+        result.winner === "PLAYER_ONE";
+
+    const playerTwoWon =
+        result.winner === "PLAYER_TWO";
+
+    const tie =
+        result.winner === "TIE";
+
+    return (
+        <div className="battle-result-overlay">
+            <div className="battle-result-panel">
+                <div className="battle-result-kicker">
+                    <Trophy size={14} />
+                    FINAL AURA ANALYSIS
+                </div>
+
+                <div className="battle-result-title">
+                    {tie ? (
+                        <>
+                            AURA
+                            <span>EQUILIBRIUM</span>
+                        </>
+                    ) : (
+                        <>
+                            PLAYER
+                            <span>
+                                {playerOneWon ? "01 WINS" : "02 WINS"}
+                            </span>
+                        </>
+                    )}
+                </div>
+
+                <div className="battle-result-scores">
+                    <div
+                        className={`battle-result-player ${playerOneWon ? "winning" : ""
+                            }`}
+                    >
+                        <span>PLAYER 01</span>
+                        <strong>{result.playerOne.score}</strong>
+                        <small>AURA UNITS</small>
+                    </div>
+
+                    <div className="battle-result-vs">
+                        <span>VS</span>
+                        <strong>{result.auraDifference}</strong>
+                        <small>DIFFERENCE</small>
+                    </div>
+
+                    <div
+                        className={`battle-result-player ${playerTwoWon ? "winning" : ""
+                            }`}
+                    >
+                        <span>PLAYER 02</span>
+                        <strong>{result.playerTwo.score}</strong>
+                        <small>AURA UNITS</small>
+                    </div>
+                </div>
+
+                <div className="battle-result-message">
+                    {result.message}
+                </div>
+
+                <div className="battle-result-classifications">
+                    <div>
+                        <span>PLAYER 01</span>
+                        <strong>
+                            {result.playerOne.classification}
+                        </strong>
+                    </div>
+
+                    <div>
+                        <span>PLAYER 02</span>
+                        <strong>
+                            {result.playerTwo.classification}
+                        </strong>
+                    </div>
+                </div>
+
+                <div className="battle-result-actions">
+                    <button
+                        type="button"
+                        className="battle-result-replay"
+                        onClick={onReplay}
+                    >
+                        <RotateCcw size={15} />
+                        BATTLE AGAIN
+                    </button>
+
+                    <Link
+                        href="/leaderboard"
+                        className="battle-result-leaderboard"
+                    >
+                        LEADERBOARD
+                        <ArrowRight size={15} />
+                    </Link>
+                </div>
+            </div>
+        </div>
+    );
+}
 
 export default function BattlePage() {
     const router = useRouter();
 
-    const [playerOne, setPlayerOne] = useState<AuraResult | null>(null);
-    const [playerTwo, setPlayerTwo] = useState<AuraResult | null>(null);
-    const [battleResult, setBattleResult] = useState<ReturnType<
-        typeof battleAura
-    > | null>(null);
+    const videoRef = useRef<HTMLVideoElement | null>(null);
+    const canvasRef = useRef<HTMLCanvasElement | null>(null);
+    const battleRef = useRef<AuraBattle | null>(null);
 
-    const [revealing, setRevealing] = useState(false);
-    const [selectedDemo, setSelectedDemo] =
-        useState<AuraDemoMode>("ILLEGAL");
+    const [state, setState] =
+        useState<AuraBattleState>({
+            phase: "IDLE",
+            progress: 0,
+            elapsedMs: 0,
+            faceCount: 0,
+            measurements: {
+                playerOne: null,
+                playerTwo: null,
+                faceStatus: "NO_SUBJECTS",
+                faceCount: 0,
+            },
+            result: null,
+            error: null,
+        });
+
+    const [time, setTime] = useState("");
+    const [cameraError, setCameraError] = useState("");
 
     useEffect(() => {
-        const result = getAuraResult();
+        const updateClock = () => {
+            setTime(
+                new Date().toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit",
+                    hour12: false,
+                }),
+            );
+        };
 
-        if (!result) {
-            router.replace("/scan");
+        updateClock();
+
+        const interval = window.setInterval(
+            updateClock,
+            1000,
+        );
+
+        return () => {
+            window.clearInterval(interval);
+        };
+    }, []);
+
+    async function initializeBattle() {
+        if (!videoRef.current || !canvasRef.current) {
             return;
         }
 
-        setPlayerOne(result);
-    }, [router]);
+        setCameraError("");
 
-    function loadDemoOpponent(mode: AuraDemoMode) {
-        const demo = generateDemoAura(mode);
+        try {
+            const battle = await createAuraBattle(
+                videoRef.current,
+                canvasRef.current,
+                (nextState) => {
+                    setState(nextState);
+                },
+            );
 
-        setSelectedDemo(mode);
-        setPlayerTwo(demo);
-        setBattleResult(null);
-        setRevealing(false);
+            battleRef.current = battle;
+
+            battle.start();
+        } catch (error) {
+            setCameraError(
+                error instanceof Error
+                    ? error.message
+                    : "AURA BATTLE CAMERA INITIALIZATION FAILED.",
+            );
+
+            setState((current) => ({
+                ...current,
+                phase: "ERROR",
+                error:
+                    error instanceof Error
+                        ? error.message
+                        : "AURA BATTLE CAMERA INITIALIZATION FAILED.",
+            }));
+        }
     }
 
-    function startBattle() {
-        if (!playerOne || !playerTwo) {
-            return;
-        }
+    useEffect(() => {
+        void initializeBattle();
 
-        setBattleResult(null);
-        setRevealing(true);
+        return () => {
+            battleRef.current?.destroy();
+            battleRef.current = null;
+        };
+    }, []);
+
+    function handleReplay() {
+        battleRef.current?.stop();
+
+        setCameraError("");
+
+        setState({
+            phase: "IDLE",
+            progress: 0,
+            elapsedMs: 0,
+            faceCount: 0,
+            measurements: {
+                playerOne: null,
+                playerTwo: null,
+                faceStatus: "NO_SUBJECTS",
+                faceCount: 0,
+            },
+            result: null,
+            error: null,
+        });
 
         window.setTimeout(() => {
-            const result = battleAura(playerOne, playerTwo);
-
-            setBattleResult(result);
-            setRevealing(false);
-        }, 1100);
+            void initializeBattle();
+        }, 100);
     }
 
-    function resetBattle() {
-        setPlayerTwo(null);
-        setBattleResult(null);
-        setRevealing(false);
-    }
+    const isScanning =
+        state.phase === "READY" ||
+        state.phase === "SCANNING";
 
-    if (!playerOne) {
-        return (
-            <main className="battle-page battle-loading">
-                <div className="battle-loading-text">
-                    INITIALIZING AURA COMBAT SYSTEM...
-                </div>
-            </main>
-        );
-    }
+    const isComplete =
+        state.phase === "COMPLETE" &&
+        state.result !== null;
 
-    const playerOneWins =
-        battleResult?.winner === "PLAYER_ONE";
+    const tooManySubjects =
+        state.faceCount > 2 ||
+        state.measurements.faceStatus ===
+        "TOO_MANY_SUBJECTS";
 
-    const playerTwoWins =
-        battleResult?.winner === "PLAYER_TWO";
+    const playerOneWinner =
+        state.result?.winner === "PLAYER_ONE";
 
-    const tie =
-        battleResult?.winner === "TIE";
+    const playerTwoWinner =
+        state.result?.winner === "PLAYER_TWO";
 
     return (
         <main className="battle-page">
@@ -110,31 +455,39 @@ export default function BattlePage() {
             <div className="battle-scanlines" />
 
             <header className="battle-header">
-                <Link href="/" className="battle-brand">
+                <Link
+                    href="/"
+                    className="battle-brand"
+                >
                     AURASCAN<span>™</span>
                 </Link>
 
-                <div className="battle-status">
+                <div className="battle-header-center">
                     <span className="battle-status-dot" />
-                    COMBAT SYSTEM ONLINE
+                    BATTLE SYSTEM ONLINE
                 </div>
 
-                <div className="battle-code">
-                    BATTLE // 001
+                <div className="battle-clock">
+                    {time}
                 </div>
             </header>
 
             <div className="battle-content">
                 <div className="battle-topline">
-                    <span>AURA COMBAT SIMULATION</span>
-                    <span>NON-PHYSICAL // EXTREMELY SERIOUS</span>
+                    <span>
+                        AURA BATTLE // TWO SUBJECT PROTOCOL
+                    </span>
+
+                    <span>
+                        SINGLE CAMERA // LIVE ANALYSIS
+                    </span>
                 </div>
 
-                <section className="battle-title">
+                <section className="battle-title-section">
                     <div>
                         <div className="battle-kicker">
-                            <Swords size={14} />
-                            AURA BATTLE PROTOCOL
+                            <Users size={14} />
+                            REAL-TIME AURA COMPARISON
                         </div>
 
                         <h1>
@@ -143,258 +496,201 @@ export default function BattlePage() {
                         </h1>
 
                         <p>
-                            TWO AURAS ENTER.
-                            <br />
-                            ONE AURA LEAVES WITH ITS DIGNITY.
+                            TWO SUBJECTS. ONE CAMERA. ONE WINNER.
                         </p>
                     </div>
 
-                    <div className="battle-warning">
-                        <Zap size={15} />
-                        <span>
-                            WARNING: AURA DAMAGE MAY BE
-                            PSYCHOLOGICAL
-                        </span>
+                    <div className="battle-face-counter">
+                        <span>DETECTED SUBJECTS</span>
+                        <strong>
+                            {String(state.faceCount).padStart(2, "0")}
+                        </strong>
                     </div>
                 </section>
 
-                <section className="battle-arena">
-                    <BattlePlayer
-                        label="PLAYER 01"
-                        result={playerOne}
-                        winner={playerOneWins}
-                        loser={playerTwoWins}
-                    />
-
-                    <div className="battle-vs">
-                        <div className="battle-vs-line" />
-                        <motion.div
-                            className="battle-vs-core"
-                            animate={
-                                revealing
-                                    ? {
-                                        scale: [1, 1.2, 1],
-                                        rotate: [0, 3, -3, 0],
-                                    }
-                                    : undefined
+                <section className="battle-scanner-section">
+                    <div className="battle-player-column">
+                        <PlayerPanel
+                            player="PLAYER 01"
+                            measurement={
+                                state.measurements.playerOne
                             }
-                            transition={{
-                                duration: 0.5,
-                                repeat: revealing
-                                    ? Infinity
-                                    : 0,
-                            }}
-                        >
-                            <span>VS</span>
-                        </motion.div>
-                        <div className="battle-vs-line" />
+                            side="left"
+                            active={
+                                state.measurements.playerOne !== null
+                            }
+                            winner={playerOneWinner}
+                        />
                     </div>
 
-                    <BattlePlayer
-                        label="PLAYER 02"
-                        result={playerTwo}
-                        winner={playerTwoWins}
-                        loser={playerOneWins}
-                        empty={!playerTwo}
-                    />
-                </section>
+                    <div className="battle-camera-frame">
+                        <video
+                            ref={videoRef}
+                            className="battle-video"
+                            autoPlay
+                            muted
+                            playsInline
+                        />
 
-                {!playerTwo && (
-                    <section className="battle-opponent-panel">
-                        <div className="battle-panel-heading">
-                            <FlaskConical size={14} />
-                            SELECT OPPONENT
+                        <canvas
+                            ref={canvasRef}
+                            className="battle-canvas"
+                            aria-hidden="true"
+                        />
+
+                        <div className="battle-camera-overlay" />
+
+                        <div className="battle-camera-grid" />
+
+                        <div className="battle-camera-crosshair">
+                            <Crosshair size={46} />
                         </div>
 
-                        <div className="battle-demo-label">
-                            DEMO / TEST SUBJECTS
+                        <div className="battle-camera-corner battle-camera-corner-tl" />
+                        <div className="battle-camera-corner battle-camera-corner-tr" />
+                        <div className="battle-camera-corner battle-camera-corner-bl" />
+                        <div className="battle-camera-corner battle-camera-corner-br" />
+
+                        <div className="battle-camera-label battle-camera-label-tl">
+                            <Camera size={12} />
+                            LIVE OPTICAL FEED
                         </div>
 
-                        <div className="battle-demo-grid">
-                            {DEMO_MODES.map((mode) => (
-                                <button
-                                    key={mode}
-                                    type="button"
-                                    className={`battle-demo-button ${selectedDemo === mode
-                                            ? "active"
-                                            : ""
-                                        }`}
-                                    onClick={() =>
-                                        loadDemoOpponent(mode)
-                                    }
-                                >
-                                    <span>{mode}</span>
-                                    <ArrowRight size={13} />
-                                </button>
-                            ))}
+                        <div className="battle-camera-label battle-camera-label-tr">
+                            CAM-01
                         </div>
 
-                        <div className="battle-scan-opponent">
-                            <Crosshair size={14} />
-                            <span>
-                                REAL OPPONENT SCANNING
-                                AVAILABLE IN NEXT PROTOCOL
-                            </span>
-                        </div>
-                    </section>
-                )}
-
-                {playerTwo && !battleResult && !revealing && (
-                    <section className="battle-ready-panel">
-                        <div>
-                            <span>OPPONENT LOCKED</span>
+                        <div className="battle-camera-bottom-readout">
+                            <span>FACE STATUS</span>
                             <strong>
-                                {playerTwo.classification}
+                                {state.measurements.faceStatus.replaceAll(
+                                    "_",
+                                    " ",
+                                )}
                             </strong>
                         </div>
 
-                        <button
-                            type="button"
-                            className="battle-launch-button"
-                            onClick={startBattle}
-                        >
-                            INITIATE BATTLE
-                            <Swords size={16} />
-                        </button>
-                    </section>
-                )}
+                        <div className="battle-scanner-status">
+                            <span className="battle-scanner-status-dot" />
+                            {getStatusText(state)}
+                        </div>
 
-                {revealing && (
-                    <motion.section
-                        className="battle-reveal-panel"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                    >
-                        <motion.div
-                            className="battle-reveal-line"
-                            animate={{
-                                scaleX: [0, 1, 0],
-                            }}
-                            transition={{
-                                duration: 1,
-                                ease: "easeInOut",
-                            }}
-                        />
+                        <div className="battle-scanner-instruction">
+                            {getFaceInstruction(state)}
+                        </div>
 
-                        <motion.div
-                            className="battle-reveal-text"
-                            animate={{
-                                opacity: [0.3, 1, 0.3],
-                            }}
-                            transition={{
-                                duration: 0.45,
-                                repeat: 2,
-                            }}
-                        >
-                            CALCULATING AURA DOMINANCE...
-                        </motion.div>
-                    </motion.section>
-                )}
+                        {isScanning && (
+                            <div className="battle-scan-progress">
+                                <div className="battle-scan-progress-header">
+                                    <span>
+                                        AURA ACQUISITION
+                                    </span>
 
-                <AnimatePresence>
-                    {battleResult && !revealing && (
-                        <motion.section
-                            className="battle-result-panel"
-                            initial={{
-                                opacity: 0,
-                                y: 30,
-                                scale: 0.97,
-                            }}
-                            animate={{
-                                opacity: 1,
-                                y: 0,
-                                scale: 1,
-                            }}
-                            transition={{
-                                duration: 0.55,
-                                ease: "easeOut",
-                            }}
-                        >
-                            <div className="battle-result-kicker">
-                                <Trophy size={15} />
-                                BATTLE COMPLETE
-                            </div>
-
-                            <div className="battle-result-title">
-                                {tie && "AURA EQUILIBRIUM"}
-                                {playerOneWins &&
-                                    "PLAYER 01 DOMINATES"}
-                                {playerTwoWins &&
-                                    "PLAYER 02 DOMINATES"}
-                            </div>
-
-                            <div className="battle-result-score">
-                                <div
-                                    className={
-                                        playerOneWins
-                                            ? "winner"
-                                            : ""
-                                    }
-                                >
-                                    <span>PLAYER 01</span>
                                     <strong>
-                                        {battleResult.playerOne.score}
+                                        {state.progress}%
                                     </strong>
                                 </div>
 
-                                <div className="difference">
-                                    <span>AURA DIFFERENCE</span>
-                                    <strong>
-                                        {battleResult.auraDifference}
-                                    </strong>
-                                </div>
-
-                                <div
-                                    className={
-                                        playerTwoWins
-                                            ? "winner"
-                                            : ""
-                                    }
-                                >
-                                    <span>PLAYER 02</span>
-                                    <strong>
-                                        {battleResult.playerTwo.score}
-                                    </strong>
+                                <div className="battle-scan-progress-track">
+                                    <div
+                                        className="battle-scan-progress-fill"
+                                        style={{
+                                            width: `${state.progress}%`,
+                                        }}
+                                    />
                                 </div>
                             </div>
+                        )}
 
-                            <div className="battle-result-message">
-                                <Zap size={16} />
+                        {tooManySubjects && (
+                            <div className="battle-too-many">
+                                <AlertTriangle size={18} />
+                                <strong>
+                                    TOO MANY SUBJECTS
+                                </strong>
                                 <span>
-                                    {battleResult.message}
+                                    EXACTLY TWO HUMANS REQUIRED
                                 </span>
                             </div>
+                        )}
 
-                            <div className="battle-result-actions">
-                                <button
-                                    type="button"
-                                    onClick={resetBattle}
-                                    className="battle-action secondary"
-                                >
-                                    <RotateCcw size={14} />
-                                    NEW BATTLE
-                                </button>
-
-                                <Link
-                                    href="/leaderboard"
-                                    className="battle-action primary"
-                                >
-                                    LEADERBOARD
-                                    <ArrowRight size={14} />
-                                </Link>
+                        {cameraError && (
+                            <div className="battle-camera-error">
+                                <ShieldAlert size={17} />
+                                {cameraError}
                             </div>
-                        </motion.section>
-                    )}
-                </AnimatePresence>
+                        )}
+                    </div>
 
-                <div className="battle-navigation">
-                    <Link href="/result">
+                    <div className="battle-player-column">
+                        <PlayerPanel
+                            player="PLAYER 02"
+                            measurement={
+                                state.measurements.playerTwo
+                            }
+                            side="right"
+                            active={
+                                state.measurements.playerTwo !== null
+                            }
+                            winner={playerTwoWinner}
+                        />
+                    </div>
+                </section>
+
+                <section className="battle-telemetry">
+                    <div className="battle-telemetry-title">
+                        <Activity size={13} />
+                        LIVE BATTLE TELEMETRY
+                    </div>
+
+                    <div className="battle-telemetry-grid">
+                        <div>
+                            <span>PROTOCOL</span>
+                            <strong>AB-02</strong>
+                        </div>
+
+                        <div>
+                            <span>SUBJECTS</span>
+                            <strong>
+                                {state.faceCount}/2
+                            </strong>
+                        </div>
+
+                        <div>
+                            <span>PROGRESS</span>
+                            <strong>
+                                {state.progress}%
+                            </strong>
+                        </div>
+
+                        <div>
+                            <span>ELAPSED</span>
+                            <strong>
+                                {(state.elapsedMs / 1000).toFixed(1)}s
+                            </strong>
+                        </div>
+
+                        <div>
+                            <span>CAMERA</span>
+                            <strong>ACTIVE</strong>
+                        </div>
+                    </div>
+                </section>
+
+                <div className="battle-actions">
+                    <Link
+                        href="/"
+                        className="battle-action secondary"
+                    >
                         <ArrowLeft size={14} />
-                        RETURN TO RESULT
+                        EXIT BATTLE
                     </Link>
 
-                    <Link href="/leaderboard">
-                        VIEW LEADERBOARD
+                    <Link
+                        href="/leaderboard"
+                        className="battle-action secondary"
+                    >
+                        LEADERBOARD
                         <ArrowRight size={14} />
                     </Link>
                 </div>
@@ -406,105 +702,16 @@ export default function BattlePage() {
                 </span>
 
                 <span>
-                    MEASURE WHAT CANNOT BE MEASURED.
+                    TWO SUBJECT PROTOCOL // AB-02
                 </span>
             </footer>
+
+            {isComplete && (
+                <BattleResult
+                    state={state}
+                    onReplay={handleReplay}
+                />
+            )}
         </main>
-    );
-}
-
-function BattlePlayer({
-    label,
-    result,
-    winner,
-    loser,
-    empty = false,
-}: {
-    label: string;
-    result: AuraResult | null;
-    winner: boolean;
-    loser: boolean;
-    empty?: boolean;
-}) {
-    if (empty || !result) {
-        return (
-            <div className="battle-player battle-player-empty">
-                <div className="battle-player-label">
-                    {label}
-                </div>
-
-                <div className="battle-empty-ring">
-                    <Crosshair size={34} />
-                </div>
-
-                <div className="battle-empty-text">
-                    AWAITING OPPONENT
-                </div>
-            </div>
-        );
-    }
-
-    return (
-        <motion.div
-            className={`battle-player ${winner ? "battle-player-winner" : ""
-                } ${loser ? "battle-player-loser" : ""}`}
-            style={
-                {
-                    "--player-aura": result.color,
-                } as React.CSSProperties
-            }
-            animate={
-                winner
-                    ? {
-                        y: [0, -4, 0],
-                    }
-                    : undefined
-            }
-            transition={{
-                duration: 1.5,
-                repeat: winner ? Infinity : 0,
-            }}
-        >
-            <div className="battle-player-label">
-                {label}
-
-                {winner && (
-                    <span className="battle-winner-tag">
-                        <Crown size={10} />
-                        WINNER
-                    </span>
-                )}
-            </div>
-
-            <div className="battle-aura-display">
-                <div className="battle-aura-ring outer" />
-                <div className="battle-aura-ring middle" />
-                <div className="battle-aura-ring inner" />
-
-                <div className="battle-aura-core">
-                    <strong>{result.score}</strong>
-                    <span>AU</span>
-                </div>
-
-                <div className="battle-crosshair horizontal" />
-                <div className="battle-crosshair vertical" />
-            </div>
-
-            <div
-                className="battle-player-color"
-                style={{ color: result.color }}
-            >
-                {result.color}
-            </div>
-
-            <div className="battle-player-classification">
-                <span>CLASSIFICATION</span>
-                <strong>{result.classification}</strong>
-            </div>
-
-            <div className="battle-player-personality">
-                {result.personality}
-            </div>
-        </motion.div>
     );
 }
