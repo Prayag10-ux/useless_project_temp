@@ -4868,3 +4868,453 @@ a {
     transition: none;
   }
 }
+
+/* =========================================================
+   AURASCAN BATTLE — COMPETITIVE PLAYER PANELS
+   Safe visual-only layer
+   ========================================================= */
+
+.battle-player-panel {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg,
+      rgba(255, 255, 255, 0.035),
+      rgba(0, 0, 0, 0.42));
+  border-width: 1px;
+  transition:
+    transform 220ms ease,
+    box-shadow 220ms ease,
+    border-color 220ms ease;
+}
+
+/* Player 01 energy */
+.battle-player-left {
+  border-color: rgba(0, 255, 136, 0.28);
+  box-shadow:
+    inset 0 0 35px rgba(0, 255, 136, 0.035),
+    0 0 25px rgba(0, 255, 136, 0.025);
+}
+
+/* Player 02 energy */
+.battle-player-right {
+  border-color: rgba(0, 217, 255, 0.28);
+  box-shadow:
+    inset 0 0 35px rgba(0, 217, 255, 0.035),
+    0 0 25px rgba(0, 217, 255, 0.025);
+}
+
+/* Active scanner state */
+.battle-player-active {
+  transform: translateY(-2px);
+}
+
+.battle-player-left.battle-player-active {
+  border-color: rgba(0, 255, 136, 0.72);
+  box-shadow:
+    inset 0 0 45px rgba(0, 255, 136, 0.07),
+    0 0 30px rgba(0, 255, 136, 0.12);
+}
+
+.battle-player-right.battle-player-active {
+  border-color: rgba(0, 217, 255, 0.72);
+  box-shadow:
+    inset 0 0 45px rgba(0, 217, 255, 0.07),
+    0 0 30px rgba(0, 217, 255, 0.12);
+}
+
+/* Animated energy line */
+.battle-player-panel::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 2px;
+  opacity: 0.7;
+  transform: scaleX(0.25);
+  transform-origin: center;
+  transition: transform 500ms ease;
+}
+
+.battle-player-left::before {
+  background: #00ff88;
+}
+
+.battle-player-right::before {
+  background: #00d9ff;
+}
+
+.battle-player-active::before {
+  transform: scaleX(1);
+}
+
+/* Player number */
+.battle-player-index {
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  font-weight: 700;
+}
+
+/* Player name */
+.battle-player-title {
+  font-size: clamp(18px, 2vw, 27px);
+  letter-spacing: 0.08em;
+  font-weight: 800;
+}
+
+/* Measurement values */
+.battle-mini-metric strong,
+.battle-player-readout strong {
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 12px currentColor;
+}
+
+/* Make meters feel like power */
+.battle-player-meter {
+  height: 5px;
+  background: rgba(255, 255, 255, 0.055);
+  overflow: hidden;
+}
+
+.battle-player-meter-fill {
+  position: relative;
+  box-shadow: 0 0 12px currentColor;
+  transition: width 180ms linear;
+}
+
+.battle-player-left .battle-player-meter-fill {
+  background: #00ff88;
+}
+
+.battle-player-right .battle-player-meter-fill {
+  background: #00d9ff;
+}
+
+/* Winner gets visual dominance */
+.battle-player-winner {
+  transform: translateY(-5px) scale(1.015);
+  z-index: 3;
+}
+
+.battle-player-winner::after {
+  content: "AURA DOMINANT";
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  padding: 5px 9px;
+  border: 1px solid currentColor;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  animation: battleWinnerPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes battleWinnerPulse {
+
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+/* =========================================================
+   AURASCAN BATTLE — LIVE ARENA
+   ========================================================= */
+
+.battle-scanner-section {
+  position: relative;
+  isolation: isolate;
+}
+
+/* Arena glow behind the camera */
+.battle-scanner-section::before {
+  content: "";
+  position: absolute;
+  inset: 8%;
+  z-index: -1;
+  background:
+    radial-gradient(ellipse at center,
+      rgba(0, 255, 136, 0.055),
+      transparent 55%);
+  pointer-events: none;
+  animation: battleArenaPulse 3s ease-in-out infinite;
+}
+
+@keyframes battleArenaPulse {
+
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.96);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+}
+
+/* Camera becomes the central arena */
+.battle-camera-frame {
+  position: relative;
+  background: #020504;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.025),
+    0 0 55px rgba(0, 255, 136, 0.055),
+    inset 0 0 70px rgba(0, 0, 0, 0.75);
+}
+
+/* Central scanning energy */
+.battle-camera-frame::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg,
+      transparent 0%,
+      rgba(0, 255, 136, 0.035) 50%,
+      transparent 100%);
+}
+
+/* Horizontal scan beam */
+.battle-camera-frame::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -10%;
+  height: 2px;
+  z-index: 8;
+  pointer-events: none;
+  background: rgba(0, 255, 136, 0.75);
+  box-shadow:
+    0 0 10px rgba(0, 255, 136, 0.8),
+    0 0 30px rgba(0, 255, 136, 0.35);
+  opacity: 0;
+}
+
+/* Only show scan beam during actual scan */
+.battle-scanner-section:has(.battle-scan-progress) .battle-camera-frame::after {
+  opacity: 1;
+  animation: battleScanBeam 2.6s linear infinite;
+}
+
+@keyframes battleScanBeam {
+  0% {
+    top: 4%;
+  }
+
+  100% {
+    top: 96%;
+  }
+}
+
+/* Video */
+.battle-video {
+  filter:
+    contrast(1.05) brightness(0.82) saturate(0.65);
+  transition:
+    filter 500ms ease,
+    transform 500ms ease;
+}
+
+/* Make live scanning feel more intense */
+.battle-scanner-section:has(.battle-scan-progress) .battle-video {
+  filter:
+    contrast(1.12) brightness(0.88) saturate(0.8);
+}
+
+/* Camera grid */
+.battle-camera-grid {
+  opacity: 0.32;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.06) 1px,
+      transparent 1px),
+    linear-gradient(90deg,
+      rgba(255, 255, 255, 0.06) 1px,
+      transparent 1px);
+  background-size: 48px 48px;
+  mix-blend-mode: screen;
+}
+
+/* Crosshair */
+.battle-camera-crosshair {
+  width: 74px;
+  height: 74px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow:
+    0 0 25px rgba(0, 255, 136, 0.08);
+  animation: battleCrosshair 2.5s ease-in-out infinite;
+}
+
+.battle-camera-crosshair::before,
+.battle-camera-crosshair::after {
+  content: "";
+  position: absolute;
+  background: rgba(255, 255, 255, 0.38);
+}
+
+.battle-camera-crosshair::before {
+  left: 50%;
+  top: -13px;
+  bottom: -13px;
+  width: 1px;
+}
+
+.battle-camera-crosshair::after {
+  top: 50%;
+  left: -13px;
+  right: -13px;
+  height: 1px;
+}
+
+@keyframes battleCrosshair {
+
+  0%,
+  100% {
+    transform: scale(0.92);
+    opacity: 0.45;
+  }
+
+  50% {
+    transform: scale(1.08);
+    opacity: 0.9;
+  }
+}
+
+/* Corner brackets */
+.battle-camera-corner {
+  width: 28px;
+  height: 28px;
+  border-width: 2px;
+  opacity: 0.8;
+  transition: all 300ms ease;
+}
+
+.battle-camera-corner-tl {
+  border-top-color: #00ff88;
+  border-left-color: #00ff88;
+}
+
+.battle-camera-corner-tr {
+  border-top-color: #00d9ff;
+  border-right-color: #00d9ff;
+}
+
+.battle-camera-corner-bl {
+  border-bottom-color: #00ff88;
+  border-left-color: #00ff88;
+}
+
+.battle-camera-corner-br {
+  border-bottom-color: #00d9ff;
+  border-right-color: #00d9ff;
+}
+
+/* Live indicator */
+.battle-scanner-status {
+  backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.68);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.battle-scanner-status-dot {
+  box-shadow: 0 0 10px currentColor;
+  animation: battleLiveDot 1s ease-in-out infinite;
+}
+
+@keyframes battleLiveDot {
+
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Progress becomes an energy charge */
+.battle-scan-progress {
+  position: relative;
+}
+
+.battle-scan-progress-track {
+  height: 7px;
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.battle-scan-progress-fill {
+  position: relative;
+  background: linear-gradient(90deg,
+      #00ff88,
+      #00d9ff);
+  box-shadow:
+    0 0 12px rgba(0, 255, 136, 0.65),
+    0 0 30px rgba(0, 217, 255, 0.25);
+}
+
+.battle-scan-progress-fill::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 70px;
+  background: rgba(255, 255, 255, 0.65);
+  filter: blur(7px);
+}
+
+/* Bottom camera readout */
+.battle-camera-bottom-readout {
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  text-shadow: 0 0 10px currentColor;
+}
+
+/* Too many faces = danger */
+.battle-too-many {
+  border-color: rgba(255, 170, 0, 0.5);
+  background: rgba(255, 120, 0, 0.08);
+  box-shadow: 0 0 25px rgba(255, 120, 0, 0.08);
+}
+
+/* Camera error */
+.battle-camera-error {
+  background:
+    radial-gradient(circle at center,
+      rgba(255, 50, 50, 0.08),
+      transparent 60%);
+}
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 800px) {
+  .battle-camera-crosshair {
+    width: 54px;
+    height: 54px;
+  }
+
+  .battle-camera-corner {
+    width: 20px;
+    height: 20px;
+  }
+
+  .battle-camera-grid {
+    background-size: 32px 32px;
+  }
+}
