@@ -241,7 +241,9 @@ export default function ResultPage() {
                     <div className="result-telemetry">
                         <div>
                             <span>SCAN ID</span>
-                            <strong>{result.scanMetadata.scanId}</strong>
+                            <strong>
+                                {result.scanMetadata.scanId}
+                            </strong>
                         </div>
 
                         <div>
@@ -257,12 +259,26 @@ export default function ResultPage() {
                 </section>
 
                 <div className="result-actions">
-                    <Link href="/scan" className="result-button secondary">
+                    <Link
+                        href="/scan"
+                        className="result-button secondary"
+                    >
                         <ArrowLeft size={15} />
                         SCAN AGAIN
                     </Link>
 
-                    <Link href="/battle" className="result-button primary">
+                    <Link
+                        href="/leaderboard"
+                        className="result-button secondary"
+                    >
+                        LEADERBOARD
+                        <ArrowRight size={15} />
+                    </Link>
+
+                    <Link
+                        href="/battle"
+                        className="result-button primary"
+                    >
                         AURA BATTLE
                         <ArrowRight size={15} />
                     </Link>
@@ -270,8 +286,12 @@ export default function ResultPage() {
             </div>
 
             <footer className="result-footer">
-                <span>AURASCAN™ // CLASSIFIED AURA RESEARCH DIVISION</span>
-                <span>MEASURE WHAT CANNOT BE MEASURED.</span>
+                <span>
+                    AURASCAN™ // CLASSIFIED AURA RESEARCH DIVISION
+                </span>
+                <span>
+                    MEASURE WHAT CANNOT BE MEASURED.
+                </span>
             </footer>
         </main>
     );
