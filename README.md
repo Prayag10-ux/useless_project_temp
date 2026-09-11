@@ -133,9 +133,23 @@ Start the development server:
 npm run dev
 
 ### Project Documentation
-For Software:
+### AURASCAN System Interface
 
-# Screenshots (Add at least 3)
+![AURASCAN Landing Page](screenshots/landing-page.png)
+
+*The classified AURASCAN™️ interface, introducing an unnecessarily sophisticated system for measuring what cannot be measured.*
+
+### Aura Analysis Result
+
+![AURASCAN Aura Result](screenshots/aura-result.png)
+
+*The completed aura analysis, presenting an Aura Score, subject classification, personality profile and threat assessment.*
+
+### AURA BATTLE
+
+![AURASCAN Aura Battle](screenshots/aura-battle.png)
+
+*Two subjects enter the same scan field. Their aura signatures are compared to determine who achieves complete aura dominance.*
 
 
 # Diagrams
