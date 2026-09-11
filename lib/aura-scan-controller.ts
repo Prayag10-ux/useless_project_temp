@@ -102,18 +102,18 @@ export function createAuraScanController(
       timer = setInterval(() => {
         const elapsedMs = Date.now() - startTime;
 
+        /*
+         * Progress now moves smoothly from 0% to 100%
+         * across the entire scan duration.
+         */
         const progress = Math.min(
           100,
-          Math.round(
-            ((elapsedMs - MIN_SCAN_DURATION) /
-              (MAX_SCAN_DURATION - MIN_SCAN_DURATION)) *
-              100
-          )
+          Math.round((elapsedMs / MAX_SCAN_DURATION) * 100)
         );
 
         updateState({
           elapsedMs,
-          progress: Math.max(0, progress),
+          progress,
         });
 
         if (elapsedMs >= MAX_SCAN_DURATION) {

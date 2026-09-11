@@ -117,6 +117,7 @@ export function generateAura(input: AuraInput = {}): AuraResult {
     score = clamp(score - 40, 0, 1000);
     specialMessage = SPECIAL_MESSAGES.INSECURITY;
   } else if (input.specialEvent === "MANIPULATION") {
+    score = clamp(score - 40, 0, 1000);
     specialMessage = SPECIAL_MESSAGES.MANIPULATION;
   } else if (score < 100) {
     specialMessage = SPECIAL_MESSAGES.LOW_AURA;
