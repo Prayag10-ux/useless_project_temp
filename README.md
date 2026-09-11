@@ -2,96 +2,216 @@
 
 
 
-# [Project Name] 🎯
+# AURASCAN™️ — Measure What Cannot Be Measured 🎯
 
 
 ## Basic Details
-### Team Name: [Name]
+### Team Name: Triple T
 
 
 ### Team Members
-- Team Lead: [Name] - [College]
-- Member 2: [Name] - [College]
-- Member 3: [Name] - [College]
+- Team Lead: PRAYAG MANAS - ALBERTIAN INSTITUTE OF SCIENCE AND TECHNOLOGY (AISAT)
+- Member 2: JOHN KURUVILLA CHAKIAT - ALBERTIAN INSTITUTE OF SCIENCE AND TECHNOLOGY (AISAT)
 
 ### Project Description
-[2-3 lines about what your project does]
+AURASCAN™️ is a fictional scientific aura-analysis system that uses a webcam to detect human presence and generate a completely
+questionable Aura Score between 0–1000 AU. It measures highly suspicious parameters such as Main Character Energy, Social Gravity, Vibe
+Density, Confidence Flux, NPC Resistance andCosmic Alignment.
 
 ### The Problem (that doesn't exist)
-[What ridiculous problem are you solving?]
+Humanity has no scientifically accepted method for determining who has more aura.
+
+This creates serious problems:
+
+- Arguments over who is the main character
+- Unresolved aura differences
+- People claiming to be "built different" without evidence
+- No standardized unit for measuring vibes
+
+Someone had to solve this.
 
 ### The Solution (that nobody asked for)
-[How are you solving it? Keep it fun!]
+AURASCAN™️ takes something completely impossible to measure — your aura — and turns it into extremely precise-looking scientific data.
+Point a webcam at yourself. AURASCAN™️ detects your face, analyzes highly questionable "biometric" signals, runs some definitely-not-peer-reviewed mathematics, and produces your official Aura Score™ from 0–1000 AU.
+
+Then things get serious.
+
+Enter AURA BATTLE, where two people stand in front of the same camera and discover, once and for all, who has more aura.
+
+No arguments.
+No opinions.
+Just completely fabricated scientific evidence.
+
+The science is questionable.
+The numbers are suspiciously precise.
+The results are final.
 
 ## Technical Details
 ### Technologies/Components Used
 For Software:
-- [Languages used]
-- [Frameworks used]
-- [Libraries used]
-- [Tools used]
-
-For Hardware:
-- [List main components]
-- [List specifications]
-- [List tools required]
+- **Language:** TypeScript
+- **Framework:** Next.js
+- **Styling:** Tailwind CSS
+- **Animation:** Framer Motion
+- **UI Icons:** Lucide React
+- **Computer Vision:** MediaPipe Tasks Vision
+- **Camera API:** Browser MediaDevices / getUserMedia
+- **Storage:** Browser localStorage / sessionStorage
+- **Deployment:** Vercel
+- **Version Control:** Git + GitHub
 
 ### Implementation
 For Software:
+### Aura Scanning
+
+The webcam provides a live video feed to the browser.
+
+MediaPipe detects the subject's face while the system collects intentionally questionable measurements such as:
+
+- Face stability
+- Movement
+- Brightness
+- Main Character Energy
+- Social Gravity
+- Vibe Density
+- Confidence Flux
+- NPC Resistance
+- Cosmic Alignment
+
+These values are passed through the AURASCAN scoring engine to generate a final Aura Score from **0–1000 AU**.
+
+### Aura Classification
+
+Subjects are classified according to their Aura Score:
+
+| Score | Classification |
+|---:|---|
+| 0–99 | AURALESS |
+| 100–199 | BACKGROUND CHARACTER |
+| 200–299 | NPC |
+| 300–449 | REGULAR HUMAN |
+| 450–599 | AURA CONTRIBUTOR |
+| 600–749 | MAIN CHARACTER |
+| 750–849 | AURA OVERLORD |
+| 850–949 | COSMIC ENTITY |
+| 950–1000 | ILLEGAL AURA |
+
+### AURA BATTLE
+
+Two people stand in front of a **single webcam**.
+
+The system:
+
+1. Detects the number of faces.
+2. Waits until exactly two subjects are present.
+3. Assigns the left subject as Player 1.
+4. Assigns the right subject as Player 2.
+5. Tracks both subjects during the scan.
+6. Generates an Aura Score for each player.
+7. Compares their scores.
+8. Declares the winner.
+
+Possible outcomes include:
+
+- EXTREMELY CLOSE
+- CLEAR AURA ADVANTAGE
+- CRITICAL AURA DIFFERENTIAL
+- ABSOLUTE AURA DOMINATION
+
+If three or more people enter the frame, the system rejects the scan because apparently even aura science has limits.
+
 # Installation
-[commands]
+Clone the repository:
+git clone https://github.com/Prayag10-ux/useless_project_temp.git
+cd useless_project_temp
+
+Install Dependencies:
+npm install
 
 # Run
-[commands]
+Start the development server:
+npm run dev
 
 ### Project Documentation
 For Software:
 
 # Screenshots (Add at least 3)
-![Screenshot1](Add screenshot 1 here with proper name)
-*Add caption explaining what this shows*
 
-![Screenshot2](Add screenshot 2 here with proper name)
-*Add caption explaining what this shows*
-
-![Screenshot3](Add screenshot 3 here with proper name)
-*Add caption explaining what this shows*
 
 # Diagrams
-![Workflow](Add your workflow/architecture diagram here)
-*Add caption explaining your workflow*
+System Workflow:
+                ┌─────────────────┐
+                │   Webcam Feed   │
+                └────────┬────────┘
+                         │
+                         ▼
+                ┌─────────────────┐
+                │  Face Detection │
+                │    MediaPipe    │
+                └────────┬────────┘
+                         │
+                         ▼
+                ┌─────────────────┐
+                │   Measurement   │
+                │   Collection    │
+                └────────┬────────┘
+                         │
+                         ▼
+                ┌─────────────────┐
+                │  Aura Engine    │
+                │  0–1000 AU      │
+                └────────┬────────┘
+                         │
+                         ▼
+                ┌─────────────────┐
+                │ Classification  │
+                │ + Aura Metrics  │
+                └────────┬────────┘
+                         │
+                         ▼
+              ┌──────────────────────┐
+              │ Result / Leaderboard │
+              └──────────────────────┘
 
-For Hardware:
-
-# Schematic & Circuit
-![Circuit](Add your circuit diagram here)
-*Add caption explaining connections*
-
-![Schematic](Add your schematic diagram here)
-*Add caption explaining the schematic*
-
-# Build Photos
-![Components](Add photo of your components here)
-*List out all components shown*
-
-![Build](Add photos of build process here)
-*Explain the build steps*
-
-![Final](Add photo of final product here)
-*Explain the final build*
+AURA BATTLE Workflow:
+Single Webcam
+      │
+      ▼
+Detect Faces
+      │
+      ├── 0 → WAITING FOR SUBJECTS
+      │
+      ├── 1 → WAITING FOR OPPONENT
+      │
+      ├── 2 → START BATTLE SCAN
+      │
+      └── 3+ → TOO MANY SUBJECTS
+                   │
+                   ▼
+          ┌───────────────────┐
+          │ Left  → Player 1  │
+          │ Right → Player 2  │
+          └─────────┬─────────┘
+                    │
+                    ▼
+             Aura Calculation
+                    │
+                    ▼
+              Score Comparison
+                    │
+                    ▼
+              AURA BATTLE WINNER
 
 ### Project Demo
 # Video
 [Add your demo video link here]
 *Explain what the video demonstrates*
 
-# Additional Demos
-[Add any extra demo materials/links]
 
 ## Team Contributions
-- [Name 1]: [Specific contributions]
-- [Name 2]: [Specific contributions]
-- [Name 3]: [Specific contributions]
+- PRAYAG MANAS: Aura engine, webcam integration, MediaPipe face detection, scan controller, AURA BATTLE core logic, battle scanner/controller,
+  integration and testing.
+- JOHN KURUVILLA CHAKIAT: Frontend/UI design, AURA BATTLE interface, result interface and visual system.
 
 ---
 Made with ❤️ at TinkerHub Useless Projects 
