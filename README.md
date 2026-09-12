@@ -218,8 +218,7 @@ Detect Faces
 
 ### Project Demo
 # Video
-[Add your demo video link here]
-*Explain what the video demonstrates*
+https://drive.google.com/file/d/10MhL69tZezRLCdudU53TRFVFosDsdF6Y/view?usp=share_link
 
 
 ## Team Contributions
